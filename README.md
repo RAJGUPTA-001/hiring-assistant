@@ -1,6 +1,6 @@
-# 🤖 TalentScout Hiring Assistant
+# 🤖 TalentScout Hiring Assistant  
 
-An intelligent AI-powered chatbot designed to assist in the initial screening of technology candidates for recruitment agencies. Built with Streamlit and powered by Groq's LLM, this application provides a seamless candidate experience while gathering essential information and conducting technical assessments.
+An intelligent AI-powered chatbot designed to assist in the initial screening of technology candidates for recruitment agencies. Built with Streamlit and powered by Groq's LLM, this application provides a seamless candidate experience while gathering essential information and conducting technical assessments.  
 
 ## 🎯 Features
 
@@ -270,3 +270,4 @@ For questions or issues:
 #   h i r i n g - a s s i s t a n t 
  
  
+
