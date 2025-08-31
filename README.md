@@ -267,5 +267,6 @@ For questions or issues:
 ---
 
 **Built with ❤️ for modern recruitment**
-#   h i r i n g - a s s i s t a n t  
+#   h i r i n g - a s s i s t a n t 
+ 
  
