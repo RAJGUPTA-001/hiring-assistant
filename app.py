@@ -113,6 +113,42 @@ def validate(field, val):
         }
         return False, msgs.get(field, "Invalid input.")
     return True, ""
+def validate_tech(tech):
+    # print(tech)
+    sys_prompt = """You are a precise and reliable technical evaluator. 
+    Your task is to determine if the input candidate response contains the name or mention of any real, known technology stack or related tech term. Do not assess correctness, only presence or absence."""
+    
+    prompt = f"""
+Candidate's Response: {tech}
+
+Your task:
+- Return only "1" if the response contains at least one real, known technology term.
+- Return only "0" if the response does not mention any real technology or is just random words.
+
+Examples:
+- For input: "I have experience with Python and Docker" → Output: 1
+- For input: "I enjoy playing football and reading books" → Output: 0
+- For input: "React, Node.js, and AWS cloud" → Output: 1
+- For input: "Lorem ipsum dolor sit amet" → Output: 0
+- For input: "Javast", "Pyhton", "Django" (typos of real tech) → Output: 1
+
+Please respond with only a single character: "1" or "0". Do not include any other text or explanation.
+
+"""
+
+    try:
+        response = call_groq(prompt, sys_prompt) 
+        # print(response)
+        # Expect response to be '1' or '0'
+        response_str = response.strip()
+        if response_str in ("1", "0"):
+            return response_str
+        else:
+            # fallback if response is unexpected
+            return "0"
+    except:
+        return "0"
+
 
 # ————————————————————————————————
 # Data Privacy & Security
@@ -280,7 +316,8 @@ def evaluate_answer(question, answer, technology):
         json_match = re.search(r'\{.*\}', response, re.DOTALL)
         if json_match:
             result = json.loads(json_match.group())
-            return result.get("correct", False), result.get("feedback", "Good effort!"), result.get("score",0)
+            # print (result)
+            return result.get("correct", False), result.get("feedback", "Good effort!"), result.get("score","0")
     except:
         pass
     
@@ -292,10 +329,20 @@ def evaluate_answer(question, answer, technology):
 # Conversation Management
 # ————————————————————————————————
 def check_exit_intent(text):
-    """Check if user wants to exit the conversation"""
-    exit_keywords = ["bye", "exit", "quit", "end", "stop", "finish", 
-                     "goodbye", "thanks bye", "thank you bye", "done"]
-    return any(keyword in text.lower() for keyword in exit_keywords)
+    sys_prompt = """You are a technical interviewer evaluating answers. 
+    you have to check if the response is answer to the question or user  wants to exit conversation """
+    
+    prompt = f"""
+    Candidate's Response: {text}
+    
+    Evaluate the answer and check if the user want to exit the conversation  , reply with only 0 or 1 , 1  if user want to exit 0 otherwise."""
+    
+    try:
+        response = call_groq(prompt, sys_prompt)
+        return int(response)
+    except:
+        pass
+    
 
 def handle_unexpected_input(input_text):
     """Handle unexpected or off-topic inputs"""
@@ -518,7 +565,10 @@ def main():
                 
                 if experience < 0:
                     errors.append("Years of experience must be non-negative.")
-                
+
+                if not int(validate_tech(tech)):
+                    errors.append("write your tech-stack clearly ")
+
                 # Display errors or proceed
                 if errors:
                     st.error("❌ Please fix the following errors:")
@@ -579,7 +629,7 @@ def main():
         
         # Display score with visual feedback
         col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
+        with col2: 
             st.markdown(f"""
             <div class='score-display'>
                 Your Score: {st.session_state.score}/{total_q}
@@ -752,3 +802,25 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
