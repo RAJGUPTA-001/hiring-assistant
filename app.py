@@ -1,3 +1,4 @@
+
 import streamlit as st
 import groq
 import re
@@ -113,6 +114,7 @@ def validate(field, val):
         }
         return False, msgs.get(field, "Invalid input.")
     return True, ""
+
 def validate_tech(tech):
     # print(tech)
     sys_prompt = """You are a precise and reliable technical evaluator. 
@@ -360,9 +362,9 @@ if 'conversation_history' not in st.session_state:
     st.session_state.conversation_history = []
 
 for k in ("greeted", "form_done", "questions", "q_index", "score", 
-          "mark_list", "detailed_feedback", "interview_complete"):
+          "mark_list", "detailed_feedback", "interview_complete", "confirming_exit"):
     if k not in st.session_state:
-        if k in ("greeted", "form_done", "interview_complete"):
+        if k in ("greeted", "form_done", "interview_complete", "confirming_exit"):
             st.session_state[k] = False
         elif k in ("questions", "mark_list", "detailed_feedback", "conversation_history"):
             st.session_state[k] = []
@@ -679,8 +681,6 @@ def main():
             "percentage": score_percentage
         })
         
-        
-        
         return
     
     # Display current question
@@ -729,52 +729,62 @@ def main():
     with col3:
         skip = st.button("Skip Question", use_container_width=True)
     
+    # Handle exit confirmation
+    if st.session_state.confirming_exit:
+        st.warning("👋 Are you sure you want to end the interview?")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Yes, end interview", key="confirm_exit"):
+                st.session_state.interview_complete = True
+                st.session_state.confirming_exit = False
+                st.rerun()
+        with col2:
+            if st.button("No, continue", key="cancel_exit"):
+                st.session_state.confirming_exit = False
+                st.rerun()
+        return
+    
     if submitted and answer:
-        # Check for exit intent
-        if check_exit_intent(answer):
-            st.warning("👋 Are you sure you want to end the interview?")
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("Yes, end interview"):
-                    st.session_state.interview_complete = True
-                    st.rerun()
-            with col2:
-                if st.button("No, continue"):
-                    st.rerun()
+        # Check for exit intent first, but don't show confirmation if already confirming
+        if check_exit_intent(answer) and not st.session_state.confirming_exit:
+            st.session_state.confirming_exit = True
+            st.rerun()
             return
         
-        # Check for off-topic input
-        is_off_topic, redirect_msg = handle_unexpected_input(answer)
-        if is_off_topic:
-            st.warning(redirect_msg)
-            return
-        
-        # Evaluate answer
-        is_correct, feedback ,score = evaluate_answer(current_question, answer, current_tech)
-        
-        # Store detailed feedback
-        st.session_state.detailed_feedback.append({
-            "technology": current_tech,
-            "question_num": question_index_in_tech + 1,
-            "question": current_question,
-            "answer": answer,
-            "feedback": feedback,
-            "correct": is_correct,
-            "score":score
-        })
-        
-        if is_correct:
-            st.success(f"✅ {feedback}")
-            st.session_state.score += 1
-            st.session_state.mark_list.append(1)
-        else:
-            st.warning(f"⚠️ {feedback}")
-            st.session_state.mark_list.append(0)
-        
-        # Move to next question
-        st.session_state.q_index += 1
-        time.sleep(1.5)
-        st.rerun()
+        # Only process the answer if we're not in exit confirmation mode
+        if not st.session_state.confirming_exit:
+            # Check for off-topic input
+            is_off_topic, redirect_msg = handle_unexpected_input(answer)
+            if is_off_topic:
+                st.warning(redirect_msg)
+                return
+            
+            # Evaluate answer
+            is_correct, feedback, score = evaluate_answer(current_question, answer, current_tech)
+            
+            # Store detailed feedback
+            st.session_state.detailed_feedback.append({
+                "technology": current_tech,
+                "question_num": question_index_in_tech + 1,
+                "question": current_question,
+                "answer": answer,
+                "feedback": feedback,
+                "correct": is_correct,
+                "score": score
+            })
+            
+            if is_correct:
+                st.success(f"✅ {feedback}")
+                st.session_state.score += 1
+                st.session_state.mark_list.append(1)
+            else:
+                st.warning(f"⚠️ {feedback}")
+                st.session_state.mark_list.append(0)
+            
+            # Move to next question
+            st.session_state.q_index += 1
+            time.sleep(1.5)
+            st.rerun()
     
     elif skip:
         st.info("Question skipped. Moving to next question...")
@@ -802,25 +812,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
